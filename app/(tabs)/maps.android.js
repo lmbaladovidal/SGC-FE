@@ -2,17 +2,25 @@ import * as Location from 'expo-location';
 import { useState, useEffect,useRef,useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Pressable, Text, View } from 'react-native';
-
+import { Platform } from 'react-native';
 import {UpdateTruckLocation} from "../../lib/beConection";
 
 
 export default function LocationComponent() {
-
+  
   const [location, setLocation] = useState(null);
   const [truck, setTruck] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [mapComponent, setMapComponent] = useState(null);
   let intervalRef = useRef(null);
 
+  const loadReactNativeMap = async () => {
+        if (Platform.OS === 'android') return;
+        console.log("Soy plataforma:",Platform.OS)
+        ///const test = await require('react-native-maps');
+        setMapComponent({ MapView });
+  
+      };
 
 
   useEffect(() => {
@@ -22,6 +30,7 @@ export default function LocationComponent() {
         setErrorMsg('Permiso para acceder a la ubicación fue denegado');
         return;
       }
+      loadReactNativeMap();
     })();
   }, []);
 
@@ -38,6 +47,7 @@ export default function LocationComponent() {
     let location = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High, // más precisión
     });
+    console.log("Soy plataforma: ",Platform.OS)
     setLocation(location);
     console.log(location.coords.latitude, location.coords.longitude);
     handleLocation({
@@ -50,7 +60,6 @@ export default function LocationComponent() {
   function repetirCadaSegundo() {
     intervalRef.current = setInterval(obtainLocation, 10000);
   } 
-
 
   function eliminarIntervalo() {
     clearTimeout(intervalRef.current);
@@ -72,14 +81,12 @@ export default function LocationComponent() {
   return (
     <View>
       <Text>{errorMsg || (location ? `Latitud: ${location.coords.latitude}, Longitud: ${location.coords.longitude}` : 'Esperando ubicación...')}</Text>
-
       <Pressable  
         style={{ marginTop: 20, backgroundColor: 'blue', alignItems: 'center', padding: 10 }} 
         onPress={repetirCadaSegundo}
       >
         <Text>Iniciar Intervalo</Text>
       </Pressable>
-
       <Pressable  
         style={{ marginTop: 20, backgroundColor: 'green', alignItems: 'center', padding: 10 }} 
         onPress={() => handleLocation({
@@ -90,11 +97,9 @@ export default function LocationComponent() {
       >
         <Text>Asignar Ubicacion Camion</Text>
       </Pressable>
-
       <Text style={{ marginTop: 20 }}>Camion: {truck && truck.id}</Text>
       <Text>Latitud: {truck && truck.latitude}</Text>
       <Text>Longitud: {truck && truck.longitude}</Text>
-
     </View>
   );
 }
