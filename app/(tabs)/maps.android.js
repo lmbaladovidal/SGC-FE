@@ -15,9 +15,10 @@ export default function LocationComponent() {
   let intervalRef = useRef(null);
 
   const loadReactNativeMap = async () => {
-        if (Platform.OS === 'android') return;
-        console.log("Soy plataforma:",Platform.OS)
-        ///const test = await require('react-native-maps');
+        if (Platform.OS !== 'android') {
+          return <Text>Mapa no disponible en esta plataforma</Text>;
+        }
+        //const test = await require('react-native-maps');
         setMapComponent({ MapView });
   
       };
@@ -58,7 +59,8 @@ export default function LocationComponent() {
   }
 
   function repetirCadaSegundo() {
-    intervalRef.current = setInterval(obtainLocation, 10000);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(obtainLocation, 10000)
   } 
 
   function eliminarIntervalo() {

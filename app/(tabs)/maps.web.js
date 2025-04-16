@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef,useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Platform } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { UpdateTruckLocation } from '../../lib/beConection';
 
 export default function LocationComponent() {
@@ -9,15 +10,29 @@ export default function LocationComponent() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [LeafletComponents, setLeafletComponents] = useState(null);
+  const locationRef = useRef(null);
+
+useEffect(() => {
+  locationRef.current = location;
+}, [location]);
 
   const intervalRef = useRef(null);
+
+ useFocusEffect(
+    useCallback(() => {
+      repetirCadaSegundo(); // se activa al entrar a la tab
+      return () => {
+        eliminarIntervalo(); // se limpia al salir de la tab
+      };
+    }, [])
+  );
 
   useEffect(() => {
     setIsClient(true);
 
     const loadLeaflet = async () => {
       if (Platform.OS !== 'web') return;
-
+      repetirCadaSegundo(); // se activa al entrar a la tab
       const L = await import('leaflet');
       const { MapContainer, TileLayer, Marker, Popup } = await import('react-leaflet');
       await import('leaflet/dist/leaflet.css');
@@ -28,7 +43,6 @@ export default function LocationComponent() {
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
-
       setLeafletComponents({ L, MapContainer, TileLayer, Marker, Popup });
     };
 
@@ -37,6 +51,7 @@ export default function LocationComponent() {
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          console.log("Ubicación obtenida:", position.coords.latitude, position.coords.longitude);
           setLocation({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -53,15 +68,17 @@ export default function LocationComponent() {
   const obtainLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        console.log("Ubicación para actualizar", locationRef.current);
         const coords = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude: locationRef.current.latitude*1.00001,
+          longitude: locationRef.current.longitude*1.00001,
         };
         setLocation(coords);
         handleLocation({
           id: "483BBD5B-3819-42A3-B2DB-8D6D5ECC3BA6",
           ...coords,
         });
+        console.log("Ubicación actualizada:", coords);
       },
       (error) => {
         console.error("Error al obtener ubicación", error);
@@ -70,7 +87,8 @@ export default function LocationComponent() {
   };
 
   const repetirCadaSegundo = () => {
-    intervalRef.current = setInterval(obtainLocation, 10000);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(obtainLocation, 5000)
   };
 
   const eliminarIntervalo = () => {
